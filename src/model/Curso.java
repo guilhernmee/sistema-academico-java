@@ -1,3 +1,5 @@
+package model;
+
 public class Curso {
 
     // um ENUM é um tipo especial que define um conjunto >FIXO< de constantes
@@ -42,7 +44,7 @@ public class Curso {
 
     public void setPeriodo(Periodo periodo) { this.periodo = periodo; }
 
-    // sobrescrevemos com o @Override, p definimos como o objeto será exibido como texto, assim como foi explicado no Aluno
+    // sobrescrevemos com o @Override, p definimos como o objeto será exibido como texto, assim como foi explicado no model.Aluno
     // vai ser útil para debug, logs e exibição nos componentes Swing q iremos usar como o JList ou JComboBox
     @Override
     public String toString() {

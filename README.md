@@ -21,21 +21,21 @@ Campos disponíveis:
 - E-mail, Endereço
 - Município, UF, Celular *(JFormattedTextField)*
 
-### Aba — Curso
+### Aba — model.Curso
 Campos disponíveis:
-- Curso *(ComboBox)*
+- model.Curso *(ComboBox)*
 - Campus *(ComboBox)*
 - Período: Matutino / Vespertino / Noturno *(RadioButton)*
 
 ### Aba — Notas e Faltas
 Campos disponíveis:
 - RGM, Nome do aluno *(somente leitura)*
-- Disciplina *(ComboBox)*
+- model.Disciplina *(ComboBox)*
 - Semestre, Nota, Faltas
 
 ### Aba — Boletim
 Exibe um resumo com:
-- RGM, Nome, Curso
+- RGM, Nome, model.Curso
 - Disciplinas, Notas e Faltas do aluno
 
 ---
@@ -44,7 +44,7 @@ Exibe um resumo com:
 
 | Menu | Opções |
 |------|--------|
-| **Aluno** | Salvar, Alterar, Consultar, Excluir, Sair |
+| **model.Aluno** | Salvar, Alterar, Consultar, Excluir, Sair |
 | **Notas e Faltas** | Lançar |
 | **Ajuda** | Sobre |
 
@@ -116,8 +116,8 @@ CREATE TABLE notas_faltas (
 SistemaAcademico/
 ├── src/
 │   ├── model/
-│   │   ├── Aluno.java
-│   │   ├── Curso.java
+│   │   ├── model.Aluno.java
+│   │   ├── model.Curso.java
 │   │   └── NotasFaltas.java
 │   ├── dao/
 │   │   ├── AlunoDAO.java

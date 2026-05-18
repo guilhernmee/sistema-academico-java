@@ -1,11 +1,11 @@
-// importações necessárias para usar LocalDate (data sem hora) e listas
+package model;// importações necessárias para usar LocalDate (data sem hora) e listas
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Aluno {
     /**
-     // atributos q vamos usar Aluno, rgm, nome, cpf, dataNascimento (localdate), email, endereço, municipio, uf e celular
+     // atributos q vamos usar model.Aluno, rgm, nome, cpf, dataNascimento (localdate), email, endereço, municipio, uf e celular
      */
     // pov: dispenso comentarios nessa parte pois é o basico de POO
     private int rgm;
@@ -24,10 +24,10 @@ public class Aluno {
     */
 
     private Curso curso; //um aluno está matriculado em UM curso (relacionamento 1:1)
-    // O tipo é a própria classe Curso, que criamos no outro arquivo
+    // O tipo é a própria classe model.Curso, que criamos no outro arquivo
 
     private List<NotaFalta> notasFaltas; // um aluno pode ter VÁRIAS notas e faltas (relacionamento 1:N)
-    // List<NotaFalta> é uma lista genérica que aceita apenas objetos do tipo NotaFalta
+    // List<model.NotaFalta> é uma lista genérica que aceita apenas objetos do tipo model.NotaFalta
     // arrayList é a implementação de List que UTILIZAMOS no primeiro projeto de caixa eletronico
 
     /**
@@ -77,7 +77,7 @@ public class Aluno {
     /**
      * remove um registro de nota/falta da lista do aluno
      * o método remove() da List compara os objetos e não gera erro se o item não for encontrado
-     * @param nf Objeto NotaFalta a ser removido
+     * @param nf Objeto model.NotaFalta a ser removido
      */
     public void removerNotaFalta(NotaFalta nf) {
         notasFaltas.remove(nf);
@@ -134,6 +134,6 @@ public class Aluno {
 
     @Override
     public String toString() {
-        return "Aluno{rgm=" + rgm + ", nome='" + nome + "'}";
+        return "model.Aluno{rgm=" + rgm + ", nome='" + nome + "'}";
     }
 }

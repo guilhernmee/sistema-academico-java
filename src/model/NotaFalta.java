@@ -1,10 +1,12 @@
+package model;
+
 public class NotaFalta {
-    // NotaFalta representa o registro de nota e falta de UM aluno em UMA disciplina
+    // model.NotaFalta representa o registro de nota e falta de UM aluno em UMA disciplina
 // Relacionamento:
 //   pertence a UM aluno     (FK: rgm)           → ON DELETE CASCADE
 //   pertence a UMA disciplina (FK: codDisciplina)
 // Requisito do professor: "se um aluno for EXCLUIDO suas notas e faltas também deverão ser excluídas"
-    // enum Semestre — mesmo padrão do enum Periodo dentro do Curso
+    // enum Semestre — mesmo padrão do enum Periodo dentro do model.Curso
     // define um conjunto FIXO de semestres válidos para evitar valores inválidos
     // cobre desde 2020 conforme exemplo do PDF (ex: 2020-1)
 
@@ -30,7 +32,7 @@ public class NotaFalta {
             this.descricao = descricao;
         }
 
-        // mesmo padrão do toString() do enum Periodo em Curso
+        // mesmo padrão do toString() do enum Periodo em model.Curso
         // útil para exibir no JComboBox da tela
         @Override
         public String toString() {
@@ -45,10 +47,10 @@ public class NotaFalta {
     private double nota;             // nota do aluno na disciplina — PDF mostra valores como 0,5
     private int faltas;              // número de faltas do aluno na disciplina
 
-    // construtor padrão — mesmo padrão do Aluno() e Curso()
+    // construtor padrão — mesmo padrão do model.Aluno() e model.Curso()
     public NotaFalta() {}
 
-    // construtor completo — mesmo padrão do Aluno(rgm, nome, ...) e Curso(codCurso, ...)
+    // construtor completo — mesmo padrão do model.Aluno(rgm, nome, ...) e model.Curso(codCurso, ...)
     public NotaFalta(int codNotaFalta, Aluno aluno, Disciplina disciplina,
                      Semestre semestre, double nota, int faltas) {
         this.codNotaFalta = codNotaFalta;
@@ -59,7 +61,7 @@ public class NotaFalta {
         this.faltas = faltas;
     }
 
-    // getters e setters — mesmo padrão do Aluno e Curso
+    // getters e setters — mesmo padrão do model.Aluno e model.Curso
     public int getCodNotaFalta() { return codNotaFalta; }
     public void setCodNotaFalta(int codNotaFalta) { this.codNotaFalta = codNotaFalta; }
 
@@ -78,11 +80,11 @@ public class NotaFalta {
     public int getFaltas() { return faltas; }
     public void setFaltas(int faltas) { this.faltas = faltas; }
 
-    // toString() sobrescrito — mesmo padrão do Aluno que mostra os dados principais
+    // toString() sobrescrito — mesmo padrão do model.Aluno que mostra os dados principais
     // útil para debug e exibição no Boletim
     @Override
     public String toString() {
-        return "NotaFalta{" +
+        return "model.NotaFalta{" +
                 "aluno=" + aluno.getNome() +
                 ", disciplina=" + disciplina.getNomeDisciplina() +
                 ", semestre=" + semestre +
