@@ -8,7 +8,7 @@ public class Aluno {
      // atributos q vamos usar model.Aluno, rgm, nome, cpf, dataNascimento (localdate), email, endereço, municipio, uf e celular
      */
     // pov: dispenso comentarios nessa parte pois é o basico de POO
-    private int rgm;
+    private String rgm; // rgm é String pois se o RGM começa com 0, ele some e o int não suporta o tamanho do número.
     private String nome;
     private String cpf;
     private LocalDate dataNascimento; // LocalDate representa uma data (dia/mês/ano)
@@ -43,7 +43,7 @@ public class Aluno {
      * SEGUNDO o construtor COMPLETO (com todos os parâmetros)
      * Usado quando já temos todos os dados disponíveis para criar o aluno
      */
-    public Aluno(int rgm, String nome, String cpf, LocalDate dataNascimento,
+    public Aluno(String rgm, String nome, String cpf, LocalDate dataNascimento,
                  String email, String endereco, String municipio,
                  String uf, String celular) {
 
@@ -83,9 +83,9 @@ public class Aluno {
         notasFaltas.remove(nf);
     }
     //após isso colocaremos os getters e setters (básico né galera, n vou comentar essa parte tb)
-    public int getRgm() { return rgm; }
+    public String getRgm() { return rgm; }
 
-    public void setRgm(int rgm) { this.rgm = rgm; }
+    public void setRgm(String rgm) { this.rgm = rgm; }
 
     public String getNome() { return nome; }
 
