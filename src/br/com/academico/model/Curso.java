@@ -1,4 +1,4 @@
-package model;
+package br.com.academico.model;
 
 public class Curso {
 
@@ -34,7 +34,7 @@ public class Curso {
 
     public String getNomeCurso() { return nomeCurso; }
 
-    public void setNome(String nomeCurso) { this.nomeCurso = nomeCurso; }
+    public void setNome(String nomeCurso) { this.nomeCurso = nomeCurso;}
 
     public String getCampus() { return campus; }
 

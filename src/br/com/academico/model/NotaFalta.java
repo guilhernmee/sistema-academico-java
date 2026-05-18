@@ -1,4 +1,4 @@
-package model;
+package br.com.academico.model;
 
 public class NotaFalta {
     // model.NotaFalta representa o registro de nota e falta de UM aluno em UMA disciplina

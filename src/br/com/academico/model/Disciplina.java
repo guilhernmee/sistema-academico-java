@@ -1,4 +1,4 @@
-package model;
+package br.com.academico.model;
 
 public class Disciplina {
     // model.Disciplina representa uma matéria que o aluno cursa

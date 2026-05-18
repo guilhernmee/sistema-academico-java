@@ -1,4 +1,4 @@
-package model;// importações necessárias para usar LocalDate (data sem hora) e listas
+package br.com.academico.model;// importações necessárias para usar LocalDate (data sem hora) e listas
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
