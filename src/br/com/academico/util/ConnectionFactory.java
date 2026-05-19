@@ -2,19 +2,20 @@ package br.com.academico.util;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 
 public class ConnectionFactory {
 
-    public static Connection getConnection() throws Exception {
+    public static Connection getConnection() throws SQLException {
         try {
-            // A linha do Class.forName foi removida (não é mais necessária)
-            String url = "jdbc:mysql://localhost:3306/academico";
-            String username = "root";
-            String password = ""; // <-- CORRIGIDO: aspas totalmente vazias (sem espaço dentro)
+            Class.forName("com.mysql.cj.jdbc.Driver"); // força o carregamento do driver
+            String url      = "jdbc:mysql://localhost:3306/academico";
+            String username = "academico";
+            String password = "1234"; // se sua instalação do MySQL tiver senha, coloque aqui
 
             return DriverManager.getConnection(url, username, password);
         } catch (Exception e) {
-            throw new Exception(e.getMessage());
+            throw new SQLException(e.getMessage());
         }
     }
 

@@ -1,5 +1,14 @@
 package br.com.academico.view;
 
+import br.com.academico.dao.AlunoDAO;
+import br.com.academico.dao.CursoDAO;
+import br.com.academico.dao.DisciplinaDAO;
+import br.com.academico.dao.NotaFaltaDAO;
+import br.com.academico.model.Aluno;
+import br.com.academico.model.Curso;
+import br.com.academico.model.Disciplina;
+import br.com.academico.model.NotaFalta;
+
 import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -9,10 +18,9 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultComboBoxModel;
@@ -64,6 +72,7 @@ public class JanelaTeste extends JFrame {
     private JTextField        txtAnoIngresso;
 
     // ── Notas e Faltas ───────────────────────────────────────────────────────
+    // CORRIGIDO: era JFormattedTextField com MaskFormatter — agora é JTextField com FiltroSomenteNumeros
     private JTextField        txtRgmNF;
     private JTextField        txtNomeAluno;
     private JTextField        txtCursoAluno;
@@ -73,20 +82,24 @@ public class JanelaTeste extends JFrame {
     private JTextField        txtFaltas;
 
     // ── Boletim ──────────────────────────────────────────────────────────────
-    private JFormattedTextField   txtRgmBoletim;
-    private JTextField            txtNomeBoletim;
-    private JTextField            txtCursoBoletim;
-    private JFormattedTextField[] bltDisciplinas = new JFormattedTextField[5];
-    private JFormattedTextField[] bltSemestres   = new JFormattedTextField[5];
-    private JFormattedTextField[] bltNotas       = new JFormattedTextField[5];
-    private JFormattedTextField[] bltFaltas      = new JFormattedTextField[5];
-    private JFormattedTextField[] bltSituacoes   = new JFormattedTextField[5];
+    // CORRIGIDO: era JFormattedTextField com MaskFormatter — agora é JTextField com FiltroSomenteNumeros
+    private JTextField             txtRgmBoletim;
+    private JTextField             txtNomeBoletim;
+    private JTextField             txtCursoBoletim;
+    private JFormattedTextField[]  bltDisciplinas = new JFormattedTextField[5];
+    private JFormattedTextField[]  bltSemestres   = new JFormattedTextField[5];
+    private JFormattedTextField[]  bltNotas       = new JFormattedTextField[5];
+    private JFormattedTextField[]  bltFaltas      = new JFormattedTextField[5];
+    private JFormattedTextField[]  bltSituacoes   = new JFormattedTextField[5];
 
-    // ── Banco de dados em memória ────────────────────────────────────────────
-    // RGM -> { Nome, Curso, Campus, Período, DataNasc, CPF, Email, Endereço, Município, UF, Celular, SemestreAtual, Modalidade, AnoIngresso }
-    private Map<String, String[]>        bancoDados  = new HashMap<>();
-    // RGM -> lista de { Disciplina, Semestre, Nota, Faltas }
-    private Map<String, List<String[]>>  notasDados  = new HashMap<>();
+    // ── DAOs ─────────────────────────────────────────────────────────────────
+    private final AlunoDAO      alunoDAO      = new AlunoDAO();
+    private final CursoDAO      cursoDAO      = new CursoDAO();
+    private final DisciplinaDAO disciplinaDAO = new DisciplinaDAO();
+    private final NotaFaltaDAO  notaFaltaDAO  = new NotaFaltaDAO();
+
+    // ── Formatador de datas ──────────────────────────────────────────────────
+    private static final DateTimeFormatter FMT_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     // ════════════════════════════════════════════════════════════════════════
     //  Filtro: somente letras (incluindo acentos portugueses) e espaços
@@ -125,49 +138,129 @@ public class JanelaTeste extends JFrame {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    //  Dados de exemplo
+    //  Filtro: somente dígitos com limite de 8 caracteres (para campos RGM)
     // ════════════════════════════════════════════════════════════════════════
-    private void popularDados() {
-        bancoDados.put("01290202", new String[]{
-                "João Silva", "Análise e Desenvolvimento de Sistemas", "Tatuapé", "Noturno",
-                "15/03/2000", "123.456.789-00", "joao@email.com", "Rua A, 100",
-                "São Paulo", "SP", "(11)99999-0000", "3º", "Presencial", "2022"
-        });
-        bancoDados.put("01290303", new String[]{
-                "Maria Souza", "Engenharia de Software", "Vila Lobos", "Matutino",
-                "20/07/2001", "987.654.321-00", "maria@email.com", "Rua B, 200",
-                "São Paulo", "SP", "(11)88888-0000", "2º", "Presencial", "2023"
-        });
-        bancoDados.put("01290404", new String[]{
-                "Carlos Lima", "Ciência da Computação", "Tatuapé", "Vespertino",
-                "10/11/1999", "111.222.333-44", "carlos@email.com", "Rua C, 300",
-                "Guarulhos", "SP", "(11)77777-0000", "4º", "Presencial", "2021"
-        });
+    static class FiltroRgm extends DocumentFilter {
+        @Override
+        public void insertString(FilterBypass fb, int offset, String str, AttributeSet attr)
+                throws BadLocationException {
+            if (str != null && str.matches("[0-9]*")
+                    && (fb.getDocument().getLength() + str.length()) <= 8)
+                super.insertString(fb, offset, str, attr);
+        }
+        @Override
+        public void replace(FilterBypass fb, int offset, int length, String str, AttributeSet attrs)
+                throws BadLocationException {
+            if (str != null && str.matches("[0-9]*")
+                    && (fb.getDocument().getLength() - length + str.length()) <= 8)
+                super.replace(fb, offset, length, str, attrs);
+        }
+    }
 
-        List<String[]> notasJoao = new ArrayList<>();
-        notasJoao.add(new String[]{"Programação Orientada a Objetos", "2024-1", "8,0",  "2"});
-        notasJoao.add(new String[]{"Estrutura de Dados",              "2024-1", "7,0",  "4"});
-        notasJoao.add(new String[]{"Banco de Dados",                  "2024-1", "9,0",  "0"});
-        notasJoao.add(new String[]{"Cálculo Diferencial 2",           "2024-1", "5,0",  "8"});
-        notasDados.put("01290202", notasJoao);
+    // ════════════════════════════════════════════════════════════════════════
+    //  Helpers de mapeamento: nome exibido ↔ valor do enum no banco
+    // ════════════════════════════════════════════════════════════════════════
 
-        List<String[]> notasMaria = new ArrayList<>();
-        notasMaria.add(new String[]{"Programação Orientada a Objetos", "2024-2", "10,0", "0"});
-        notasMaria.add(new String[]{"Estrutura de Dados",              "2024-2", "6,0",  "6"});
-        notasDados.put("01290303", notasMaria);
+    /** Converte o nome exibido no combo para o valor ENUM do banco. */
+    private String nomeCursoParaBanco(String nomeExibido) {
+        switch (nomeExibido) {
+            case "Análise e Desenvolvimento de Sistemas": return "ANALISE E DESENVOLVIMENTO DE SISTEMAS";
+            case "Engenharia de Software":                return "ENGENHARIA DE SOFTWARE";
+            case "Ciência da Computação":                 return "CIENCIA DA COMPUTACAO";
+            default:                                       return nomeExibido.toUpperCase();
+        }
+    }
 
-        List<String[]> notasCarlos = new ArrayList<>();
-        notasCarlos.add(new String[]{"Programação Orientada a Objetos", "2023-2", "4,0",  "20"});
-        notasCarlos.add(new String[]{"Banco de Dados",                  "2023-2", "7,5",  "3"});
-        notasCarlos.add(new String[]{"Cálculo Diferencial 2",           "2023-2", "3,5",  "18"});
-        notasDados.put("01290404", notasCarlos);
+    /** Converte o valor ENUM do banco para o nome exibido no combo. */
+    private String nomeCursoParaExibicao(String nomeBanco) {
+        switch (nomeBanco) {
+            case "ANALISE E DESENVOLVIMENTO DE SISTEMAS": return "Análise e Desenvolvimento de Sistemas";
+            case "ENGENHARIA DE SOFTWARE":                return "Engenharia de Software";
+            case "CIENCIA DA COMPUTACAO":                 return "Ciência da Computação";
+            default:                                       return nomeBanco;
+        }
+    }
+
+    /** Converte o nome exibido no combo de disciplina para o valor ENUM do banco. */
+    private String nomeDisciplinaParaBanco(String nomeExibido) {
+        switch (nomeExibido) {
+            case "Programação Orientada a Objetos": return "PROGRAMACAO ORIENTADA A OBJETOS";
+            case "Estrutura de Dados":              return "ESTRUTURA DE DADOS";
+            case "Banco de Dados":                  return "BANCO DE DADOS";
+            case "Cálculo Diferencial 2":           return "CALCULO DIFERENCIAL E INTEGRAL II";
+            default:                                 return nomeExibido.toUpperCase();
+        }
+    }
+
+    /** Converte o valor ENUM do banco para o nome exibido no combo. */
+    private String nomeDisciplinaParaExibicao(String nomeBanco) {
+        switch (nomeBanco) {
+            case "PROGRAMACAO ORIENTADA A OBJETOS": return "Programação Orientada a Objetos";
+            case "ESTRUTURA DE DADOS":              return "Estrutura de Dados";
+            case "BANCO DE DADOS":                  return "Banco de Dados";
+            case "CALCULO DIFERENCIAL E INTEGRAL II": return "Cálculo Diferencial 2";
+            default:                                   return nomeBanco;
+        }
+    }
+
+    /** Converte nota no formato "8,0" (exibição) para double. */
+    private double notaStringParaDouble(String notaStr) {
+        return Double.parseDouble(notaStr.replace(",", "."));
+    }
+
+    /** Converte double para a string de exibição "8,0". */
+    private String notaDoubleParaString(double nota) {
+        // Tenta encontrar a string mais próxima no combo
+        int inteiro = (int) nota;
+        if (nota == inteiro) return inteiro + ",0";
+        return String.valueOf(nota).replace(".", ",");
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  Busca o Curso pelo nome exibido no combo (usa a lista do banco)
+    // ════════════════════════════════════════════════════════════════════════
+    private Curso buscarCursoPorNomeECampusEPeriodo(String nomeExibido, String campus, String periodoStr) {
+        try {
+            String nomeBanco = nomeCursoParaBanco(nomeExibido);
+            Curso.Periodo periodo = Curso.Periodo.valueOf(periodoStr.toUpperCase());
+            List<Curso> lista = cursoDAO.listarTodos();
+            for (Curso c : lista) {
+                if (c.getNomeCurso().equalsIgnoreCase(nomeBanco)
+                        && c.getCampus().equalsIgnoreCase(campus)
+                        && c.getPeriodo() == periodo) {
+                    return c;
+                }
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Erro ao buscar curso: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+        return null;
+    }
+
+    /** Busca a disciplina pelo nome exibido no combo, filtrando pelo curso. */
+    private Disciplina buscarDisciplinaPorNomeECurso(String nomeExibido, int codCurso) {
+        try {
+            String nomeBanco = nomeDisciplinaParaBanco(nomeExibido);
+            List<Disciplina> lista = disciplinaDAO.listarTodos();
+            for (Disciplina d : lista) {
+                if (d.getNomeDisciplina().equalsIgnoreCase(nomeBanco)
+                        && d.getCurso().getCodCurso() == codCurso) {
+                    return d;
+                }
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Erro ao buscar disciplina: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+        return null;
     }
 
     // ════════════════════════════════════════════════════════════════════════
     //  Ações do menu Aluno
     // ════════════════════════════════════════════════════════════════════════
     private void salvarAluno() {
-        String rgm = txtRgmDP.getText().replace(" ", "").trim();
+        String rgm = txtRgmDP.getText().trim();
         if (rgm.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Informe o RGM do aluno.", "Erro", JOptionPane.ERROR_MESSAGE);
             return;
@@ -177,86 +270,179 @@ public class JanelaTeste extends JFrame {
             JOptionPane.showMessageDialog(this, "Informe o nome do aluno.", "Erro", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        String periodo = rdbMatutino.isSelected()   ? "Matutino"
+
+        String periodoStr = rdbMatutino.isSelected()   ? "Matutino"
                 : rdbVespertino.isSelected() ? "Vespertino"
                 : rdbNoturno.isSelected()    ? "Noturno"
                 : "";
+        if (periodoStr.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Selecione o período.", "Erro", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
-        bancoDados.put(rgm, new String[]{
-                nome,
-                (String) cbCurso.getSelectedItem(),
-                (String) cbCampus.getSelectedItem(),
-                periodo,
-                txtDataNascDP.getText(),
-                txtCpfDP.getText(),
-                txtEmailDP.getText(),
-                txtEndDP.getText(),
-                txtMunicipioDP.getText(),
-                (String) cbUF.getSelectedItem(),
-                txtCelularDP.getText(),
-                (String) cbSemestreAtual.getSelectedItem(),
-                (String) cbModalidade.getSelectedItem(),
-                txtAnoIngresso.getText()
-        });
-        JOptionPane.showMessageDialog(this, "Aluno salvo com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
-    }
+        String campusStr = (String) cbCampus.getSelectedItem();
+        String cursoStr  = (String) cbCurso.getSelectedItem();
 
-    private void alterarAluno() {
-        String rgm = txtRgmDP.getText().replace(" ", "").trim();
-        if (!bancoDados.containsKey(rgm)) {
+        Curso curso = buscarCursoPorNomeECampusEPeriodo(cursoStr, campusStr, periodoStr);
+        if (curso == null) {
             JOptionPane.showMessageDialog(this,
-                    "RGM não encontrado. Use 'Consultar' primeiro para carregar os dados.",
+                    "Curso/Campus/Período não encontrado no banco.\nCadastre o curso primeiro.",
                     "Erro", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        salvarAluno();
-        JOptionPane.showMessageDialog(this, "Dados do aluno alterados com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+
+        String dataStr = txtDataNascDP.getText().trim();
+        LocalDate dataNasc;
+        try {
+            dataNasc = LocalDate.parse(dataStr, FMT_BR);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Data de nascimento inválida. Use o formato DD/MM/AAAA.", "Erro", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        Aluno aluno = new Aluno();
+        aluno.setRgm(rgm);
+        aluno.setNome(nome);
+        aluno.setCpf(txtCpfDP.getText().trim());
+        aluno.setDataNascimento(dataNasc);
+        aluno.setEmail(txtEmailDP.getText().trim());
+        aluno.setEndereco(txtEndDP.getText().trim());
+        aluno.setMunicipio(txtMunicipioDP.getText().trim());
+        aluno.setUf((String) cbUF.getSelectedItem());
+        aluno.setCelular(txtCelularDP.getText().trim());
+        aluno.setCurso(curso);
+
+        try {
+            alunoDAO.salvar(aluno);
+            JOptionPane.showMessageDialog(this, "Aluno salvo com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Erro ao salvar aluno:\n" + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void alterarAluno() {
+        String rgm = txtRgmDP.getText().trim();
+        if (rgm.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Informe o RGM do aluno.", "Erro", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String periodoStr = rdbMatutino.isSelected()   ? "Matutino"
+                : rdbVespertino.isSelected() ? "Vespertino"
+                : rdbNoturno.isSelected()    ? "Noturno"
+                : "";
+        if (periodoStr.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Selecione o período.", "Erro", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        Curso curso = buscarCursoPorNomeECampusEPeriodo(
+                (String) cbCurso.getSelectedItem(),
+                (String) cbCampus.getSelectedItem(),
+                periodoStr);
+        if (curso == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Curso/Campus/Período não encontrado no banco.", "Erro", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String dataStr = txtDataNascDP.getText().trim();
+        LocalDate dataNasc;
+        try {
+            dataNasc = LocalDate.parse(dataStr, FMT_BR);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Data de nascimento inválida. Use o formato DD/MM/AAAA.", "Erro", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        Aluno aluno = new Aluno();
+        aluno.setRgm(rgm);
+        aluno.setNome(txtNomeDP.getText().trim());
+        aluno.setCpf(txtCpfDP.getText().trim());
+        aluno.setDataNascimento(dataNasc);
+        aluno.setEmail(txtEmailDP.getText().trim());
+        aluno.setEndereco(txtEndDP.getText().trim());
+        aluno.setMunicipio(txtMunicipioDP.getText().trim());
+        aluno.setUf((String) cbUF.getSelectedItem());
+        aluno.setCelular(txtCelularDP.getText().trim());
+        aluno.setCurso(curso);
+
+        try {
+            alunoDAO.alterar(aluno);
+            JOptionPane.showMessageDialog(this,
+                    "Dados do aluno alterados com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Erro ao alterar aluno:\n" + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void consultarAluno() {
-        String rgm = JOptionPane.showInputDialog(this, "Digite o RGM para consulta:", "Consultar Aluno", JOptionPane.QUESTION_MESSAGE);
+        String rgm = JOptionPane.showInputDialog(this,
+                "Digite o RGM para consulta:", "Consultar Aluno", JOptionPane.QUESTION_MESSAGE);
         if (rgm == null) return;
         rgm = rgm.trim();
-        if (!bancoDados.containsKey(rgm)) {
-            JOptionPane.showMessageDialog(this, "RGM não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
-            return;
+
+        try {
+            Aluno aluno = alunoDAO.consultar(rgm);
+            if (aluno == null) {
+                JOptionPane.showMessageDialog(this, "RGM não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            txtRgmDP.setText(aluno.getRgm());
+            txtNomeDP.setText(aluno.getNome());
+            txtCpfDP.setText(aluno.getCpf());
+            txtDataNascDP.setText(aluno.getDataNascimento().format(FMT_BR));
+            txtEmailDP.setText(aluno.getEmail());
+            txtEndDP.setText(aluno.getEndereco());
+            txtMunicipioDP.setText(aluno.getMunicipio());
+            cbUF.setSelectedItem(aluno.getUf());
+            txtCelularDP.setText(aluno.getCelular());
+
+            Curso curso = aluno.getCurso();
+            cbCurso.setSelectedItem(nomeCursoParaExibicao(curso.getNomeCurso()));
+            cbCampus.setSelectedItem(curso.getCampus());
+            switch (curso.getPeriodo()) {
+                case MATUTINO:   rdbMatutino.setSelected(true);   break;
+                case VESPERTINO: rdbVespertino.setSelected(true); break;
+                case NOTURNO:    rdbNoturno.setSelected(true);    break;
+            }
+
+            tabbedPane.setSelectedIndex(0);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Erro ao consultar aluno:\n" + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
-        String[] d = bancoDados.get(rgm);
-        txtRgmDP.setText(rgm);
-        txtNomeDP.setText(d[0]);
-        cbCurso.setSelectedItem(d[1]);
-        cbCampus.setSelectedItem(d[2]);
-        if      ("Matutino"  .equals(d[3])) rdbMatutino.setSelected(true);
-        else if ("Vespertino".equals(d[3])) rdbVespertino.setSelected(true);
-        else if ("Noturno"   .equals(d[3])) rdbNoturno.setSelected(true);
-        if (d.length > 4)  txtDataNascDP.setText(d[4]);
-        if (d.length > 5)  txtCpfDP.setText(d[5]);
-        if (d.length > 6)  txtEmailDP.setText(d[6]);
-        if (d.length > 7)  txtEndDP.setText(d[7]);
-        if (d.length > 8)  txtMunicipioDP.setText(d[8]);
-        if (d.length > 9)  cbUF.setSelectedItem(d[9]);
-        if (d.length > 10) txtCelularDP.setText(d[10]);
-        if (d.length > 11) cbSemestreAtual.setSelectedItem(d[11]);
-        if (d.length > 12) cbModalidade.setSelectedItem(d[12]);
-        if (d.length > 13) txtAnoIngresso.setText(d[13]);
-        tabbedPane.setSelectedIndex(0);
     }
 
     private void excluirAluno() {
-        String rgm = JOptionPane.showInputDialog(this, "Digite o RGM para excluir:", "Excluir Aluno", JOptionPane.QUESTION_MESSAGE);
+        String rgm = JOptionPane.showInputDialog(this,
+                "Digite o RGM para excluir:", "Excluir Aluno", JOptionPane.QUESTION_MESSAGE);
         if (rgm == null) return;
         rgm = rgm.trim();
-        if (!bancoDados.containsKey(rgm)) {
-            JOptionPane.showMessageDialog(this, "RGM não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        int ok = JOptionPane.showConfirmDialog(this,
-                "Deseja excluir o aluno com RGM " + rgm + "?\nEsta ação também excluirá suas notas.",
-                "Confirmar Exclusão", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-        if (ok == JOptionPane.YES_OPTION) {
-            bancoDados.remove(rgm);
-            notasDados.remove(rgm);
-            JOptionPane.showMessageDialog(this, "Aluno excluído com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+
+        try {
+            Aluno aluno = alunoDAO.consultar(rgm);
+            if (aluno == null) {
+                JOptionPane.showMessageDialog(this, "RGM não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            int ok = JOptionPane.showConfirmDialog(this,
+                    "Deseja excluir o aluno com RGM " + rgm + "?\nEsta ação também excluirá suas notas.",
+                    "Confirmar Exclusão", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (ok == JOptionPane.YES_OPTION) {
+                alunoDAO.excluir(rgm);
+                JOptionPane.showMessageDialog(this,
+                        "Aluno excluído com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Erro ao excluir aluno:\n" + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -265,35 +451,80 @@ public class JanelaTeste extends JFrame {
     // ════════════════════════════════════════════════════════════════════════
     private void salvarNota() {
         String rgm = txtRgmNF.getText().trim();
-        if (!bancoDados.containsKey(rgm)) {
+        if (rgm.isEmpty()) {
             JOptionPane.showMessageDialog(this,
-                    "RGM não encontrado. Cadastre o aluno primeiro.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    "Informe o RGM do aluno.", "Erro", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        String disciplina = (String) cbDisciplina.getSelectedItem();
-        String semestre   = (String) cbSemestre.getSelectedItem();
-        String nota       = (String) cbNota.getSelectedItem();
-        String faltas     = txtFaltas.getText().trim();
 
-        List<String[]> lista = notasDados.computeIfAbsent(rgm, k -> new ArrayList<>());
-        boolean found = false;
-        for (String[] e : lista) {
-            if (e[0].equals(disciplina) && e[1].equals(semestre)) {
-                e[2] = nota; e[3] = faltas; found = true; break;
+        try {
+            Aluno aluno = alunoDAO.consultar(rgm);
+            if (aluno == null) {
+                JOptionPane.showMessageDialog(this,
+                        "RGM não encontrado. Cadastre o aluno primeiro.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
             }
-        }
-        if (!found) lista.add(new String[]{disciplina, semestre, nota, faltas});
 
-        JOptionPane.showMessageDialog(this, "Nota salva com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+            String nomeDiscExib = (String) cbDisciplina.getSelectedItem();
+            Disciplina disciplina = buscarDisciplinaPorNomeECurso(
+                    nomeDiscExib, aluno.getCurso().getCodCurso());
+            if (disciplina == null) {
+                JOptionPane.showMessageDialog(this,
+                        "Disciplina não encontrada para o curso deste aluno.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String semestreStr = (String) cbSemestre.getSelectedItem();
+            double nota        = notaStringParaDouble((String) cbNota.getSelectedItem());
+            int    faltas;
+            try {
+                faltas = Integer.parseInt(txtFaltas.getText().trim());
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Faltas inválidas. Digite um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Verifica se já existe registro para este aluno/disciplina/semestre
+            List<NotaFalta> existentes = notaFaltaDAO.listarPorAluno(rgm);
+            NotaFalta nfExistente = null;
+            for (NotaFalta nf : existentes) {
+                if (nf.getDisciplina().getCodDisciplina() == disciplina.getCodDisciplina()
+                        && nf.getSemestre().toString().equals(semestreStr)) {
+                    nfExistente = nf;
+                    break;
+                }
+            }
+
+            // Converte string do semestre para o enum
+            NotaFalta.Semestre semestreEnum = null;
+            for (NotaFalta.Semestre s : NotaFalta.Semestre.values()) {
+                if (s.toString().equals(semestreStr)) { semestreEnum = s; break; }
+            }
+            if (semestreEnum == null) {
+                JOptionPane.showMessageDialog(this,
+                        "Semestre inválido.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            if (nfExistente != null) {
+                nfExistente.setNota(nota);
+                nfExistente.setFaltas(faltas);
+                notaFaltaDAO.atualizar(nfExistente);
+            } else {
+                NotaFalta nova = new NotaFalta(0, aluno, disciplina, semestreEnum, nota, faltas);
+                notaFaltaDAO.salvar(nova);
+            }
+
+            JOptionPane.showMessageDialog(this, "Nota salva com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Erro ao salvar nota:\n" + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void alterarNota() {
-        String rgm = txtRgmNF.getText().trim();
-        if (!notasDados.containsKey(rgm)) {
-            JOptionPane.showMessageDialog(this,
-                    "Nenhuma nota encontrada para este RGM.", "Erro", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+        // reutiliza salvarNota() que já faz upsert (salva ou atualiza)
         salvarNota();
     }
 
@@ -302,23 +533,37 @@ public class JanelaTeste extends JFrame {
                 "Digite o RGM para consultar notas:", "Consultar Notas", JOptionPane.QUESTION_MESSAGE);
         if (rgm == null) return;
         rgm = rgm.trim();
-        if (!notasDados.containsKey(rgm)) {
+
+        try {
+            List<NotaFalta> notas = notaFaltaDAO.listarPorAluno(rgm);
+            if (notas.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        "Nenhuma nota encontrada para este RGM.", "Informação", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+
+            txtRgmNF.setText(rgm);
+            buscarAluno();
+
+            StringBuilder sb = new StringBuilder(
+                    "<html><table border='1' cellpadding='4'>" +
+                            "<tr><th>Disciplina</th><th>Semestre</th><th>Nota</th><th>Faltas</th></tr>");
+            for (NotaFalta nf : notas) {
+                sb.append("<tr><td>")
+                        .append(nomeDisciplinaParaExibicao(nf.getDisciplina().getNomeDisciplina()))
+                        .append("</td><td>").append(nf.getSemestre())
+                        .append("</td><td>").append(nf.getNota())
+                        .append("</td><td>").append(nf.getFaltas())
+                        .append("</td></tr>");
+            }
+            sb.append("</table></html>");
+            JOptionPane.showMessageDialog(this, sb.toString(),
+                    "Notas - RGM: " + rgm, JOptionPane.INFORMATION_MESSAGE);
+            tabbedPane.setSelectedIndex(2);
+        } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
-                    "Nenhuma nota encontrada para este RGM.", "Informação", JOptionPane.INFORMATION_MESSAGE);
-            return;
+                    "Erro ao consultar notas:\n" + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
-        txtRgmNF.setText(rgm);
-        buscarAluno();
-        List<String[]> notas = notasDados.get(rgm);
-        StringBuilder sb = new StringBuilder(
-                "<html><table border='1' cellpadding='4'>" +
-                        "<tr><th>Disciplina</th><th>Semestre</th><th>Nota</th><th>Faltas</th></tr>");
-        for (String[] n : notas)
-            sb.append("<tr><td>").append(n[0]).append("</td><td>").append(n[1])
-                    .append("</td><td>").append(n[2]).append("</td><td>").append(n[3]).append("</td></tr>");
-        sb.append("</table></html>");
-        JOptionPane.showMessageDialog(this, sb.toString(), "Notas - RGM: " + rgm, JOptionPane.INFORMATION_MESSAGE);
-        tabbedPane.setSelectedIndex(2);
     }
 
     private void excluirNota() {
@@ -326,36 +571,55 @@ public class JanelaTeste extends JFrame {
                 "Digite o RGM para excluir notas:", "Excluir Notas", JOptionPane.QUESTION_MESSAGE);
         if (rgm == null) return;
         rgm = rgm.trim();
-        if (!notasDados.containsKey(rgm)) {
+
+        try {
+            List<NotaFalta> notas = notaFaltaDAO.listarPorAluno(rgm);
+            if (notas.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        "Nenhuma nota encontrada para este RGM.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            int ok = JOptionPane.showConfirmDialog(this,
+                    "Excluir todas as notas do RGM " + rgm + "?",
+                    "Confirmar", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (ok == JOptionPane.YES_OPTION) {
+                for (NotaFalta nf : notas) {
+                    notaFaltaDAO.excluir(nf.getCodNotaFalta());
+                }
+                JOptionPane.showMessageDialog(this,
+                        "Notas excluídas com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+            }
+        } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
-                    "Nenhuma nota encontrada para este RGM.", "Erro", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        int ok = JOptionPane.showConfirmDialog(this,
-                "Excluir todas as notas do RGM " + rgm + "?",
-                "Confirmar", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-        if (ok == JOptionPane.YES_OPTION) {
-            notasDados.remove(rgm);
-            JOptionPane.showMessageDialog(this, "Notas excluídas com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                    "Erro ao excluir notas:\n" + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    //  Busca – Notas e Faltas
+    //  Busca – Notas e Faltas (preenche nome/curso ao digitar o RGM)
     // ════════════════════════════════════════════════════════════════════════
     private void buscarAluno() {
         String rgm = txtRgmNF.getText().trim();
-        if (bancoDados.containsKey(rgm)) {
-            String[] d = bancoDados.get(rgm);
-            txtNomeAluno.setText(d[0]);
-            txtCursoAluno.setText(d[1]);
-            txtNomeAluno.setForeground(Color.BLACK);
-            txtCursoAluno.setForeground(Color.BLACK);
-        } else {
-            txtNomeAluno.setText("RGM não encontrado");
+        if (rgm.isEmpty()) return;
+
+        try {
+            Aluno aluno = alunoDAO.consultar(rgm);
+            if (aluno != null) {
+                txtNomeAluno.setText(aluno.getNome());
+                txtCursoAluno.setText(nomeCursoParaExibicao(aluno.getCurso().getNomeCurso()));
+                txtNomeAluno.setForeground(Color.BLACK);
+                txtCursoAluno.setForeground(Color.BLACK);
+            } else {
+                txtNomeAluno.setText("RGM não encontrado");
+                txtCursoAluno.setText("");
+                txtNomeAluno.setForeground(Color.RED);
+                txtCursoAluno.setForeground(Color.RED);
+            }
+        } catch (Exception ex) {
+            txtNomeAluno.setText("Erro de conexão");
             txtCursoAluno.setText("");
             txtNomeAluno.setForeground(Color.RED);
-            txtCursoAluno.setForeground(Color.RED);
         }
     }
 
@@ -367,7 +631,6 @@ public class JanelaTeste extends JFrame {
         txtNomeBoletim.setText("");
         txtNomeBoletim.setForeground(Color.BLACK);
         txtCursoBoletim.setText("");
-        txtCursoBoletim.setForeground(Color.BLACK);
         for (int i = 0; i < 5; i++) {
             bltDisciplinas[i].setText("");
             bltSemestres[i].setText("");
@@ -380,36 +643,36 @@ public class JanelaTeste extends JFrame {
         String rgm = txtRgmBoletim.getText().trim();
         if (rgm.isEmpty()) return;
 
-        if (!bancoDados.containsKey(rgm)) {
-            txtNomeBoletim.setText("RGM não encontrado");
-            txtNomeBoletim.setForeground(Color.RED);
-            txtCursoBoletim.setText("");
-            return;
-        }
-
-        String[] d = bancoDados.get(rgm);
-        txtNomeBoletim.setText(d[0]);
-        txtCursoBoletim.setText(d[1]);
-
-        List<String[]> notas = notasDados.getOrDefault(rgm, new ArrayList<>());
-        for (int i = 0; i < notas.size() && i < 5; i++) {
-            String[] n = notas.get(i);
-            bltDisciplinas[i].setText(n[0]);
-            bltSemestres[i].setText(n[1]);
-            bltNotas[i].setText(n[2]);
-            bltFaltas[i].setText(n[3]);
-
-            double notaVal  = Double.parseDouble(n[2].replace(",", "."));
-            int    faltasVal = 0;
-            try { faltasVal = Integer.parseInt(n[3].trim()); } catch (NumberFormatException ignored) {}
-
-            if (notaVal >= 5.0 && faltasVal <= 15) {
-                bltSituacoes[i].setText("Aprovado");
-                bltSituacoes[i].setForeground(new Color(0, 140, 0));
-            } else {
-                bltSituacoes[i].setText("Reprovado");
-                bltSituacoes[i].setForeground(Color.RED);
+        try {
+            Aluno aluno = alunoDAO.consultar(rgm);
+            if (aluno == null) {
+                txtNomeBoletim.setText("RGM não encontrado");
+                txtNomeBoletim.setForeground(Color.RED);
+                return;
             }
+
+            txtNomeBoletim.setText(aluno.getNome());
+            txtCursoBoletim.setText(nomeCursoParaExibicao(aluno.getCurso().getNomeCurso()));
+
+            List<NotaFalta> notas = notaFaltaDAO.listarPorAluno(rgm);
+            for (int i = 0; i < notas.size() && i < 5; i++) {
+                NotaFalta nf = notas.get(i);
+                bltDisciplinas[i].setText(nomeDisciplinaParaExibicao(nf.getDisciplina().getNomeDisciplina()));
+                bltSemestres[i].setText(nf.getSemestre().toString());
+                bltNotas[i].setText(String.valueOf(nf.getNota()));
+                bltFaltas[i].setText(String.valueOf(nf.getFaltas()));
+
+                if (nf.getNota() >= 5.0 && nf.getFaltas() <= 15) {
+                    bltSituacoes[i].setText("Aprovado");
+                    bltSituacoes[i].setForeground(new Color(0, 140, 0));
+                } else {
+                    bltSituacoes[i].setText("Reprovado");
+                    bltSituacoes[i].setForeground(Color.RED);
+                }
+            }
+        } catch (Exception ex) {
+            txtNomeBoletim.setText("Erro de conexão");
+            txtNomeBoletim.setForeground(Color.RED);
         }
     }
 
@@ -431,8 +694,6 @@ public class JanelaTeste extends JFrame {
     //  Construtor
     // ════════════════════════════════════════════════════════════════════════
     public JanelaTeste() throws Exception {
-
-        popularDados();
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 648, 438);
@@ -493,7 +754,7 @@ public class JanelaTeste extends JFrame {
         mntmExcluirNota.addActionListener(e -> excluirNota());
         mnNotas.add(mntmExcluirNota);
 
-        // Menu Ajuda (mantido como estava)
+        // Menu Ajuda
         JMenu mnAjuda = new JMenu("Ajuda");
         menuBar.add(mnAjuda);
         JMenuItem menuItem = new JMenuItem("Sobre");
@@ -532,6 +793,9 @@ public class JanelaTeste extends JFrame {
         tabbedPane.setBounds(20, 21, 604, 346);
         contentPane.add(tabbedPane);
 
+        // ════════════════════════════════════════════════════════════════════
+        //  Aba: Dados Pessoais
+        // ════════════════════════════════════════════════════════════════════
         JPanel panel = new JPanel();
         tabbedPane.addTab("Dados Pessoais", null, panel, null);
         panel.setLayout(null);
@@ -541,10 +805,11 @@ public class JanelaTeste extends JFrame {
         lblRgm.setBounds(20, 20, 56, 22);
         panel.add(lblRgm);
 
-        txtRgmDP = new JFormattedTextField(new MaskFormatter("#########"));
+        txtRgmDP = new JFormattedTextField();
         txtRgmDP.setFont(new Font("Tahoma", Font.PLAIN, 18));
         txtRgmDP.setBounds(71, 21, 121, 25);
         txtRgmDP.setColumns(10);
+        ((AbstractDocument) txtRgmDP.getDocument()).setDocumentFilter(new FiltroRgm());
         panel.add(txtRgmDP);
 
         JLabel lblNome = new JLabel("Nome");
@@ -556,7 +821,6 @@ public class JanelaTeste extends JFrame {
         txtNomeDP.setFont(new Font("Tahoma", Font.PLAIN, 18));
         txtNomeDP.setBounds(279, 20, 291, 25);
         txtNomeDP.setColumns(10);
-        // Somente letras no campo Nome
         ((AbstractDocument) txtNomeDP.getDocument()).setDocumentFilter(new FiltroSomenteLétras());
         panel.add(txtNomeDP);
 
@@ -611,7 +875,6 @@ public class JanelaTeste extends JFrame {
         txtMunicipioDP.setFont(new Font("Tahoma", Font.PLAIN, 18));
         txtMunicipioDP.setColumns(10);
         txtMunicipioDP.setBounds(115, 254, 110, 26);
-
         ((AbstractDocument) txtMunicipioDP.getDocument()).setDocumentFilter(new FiltroSomenteLétras());
         panel.add(txtMunicipioDP);
 
@@ -640,7 +903,9 @@ public class JanelaTeste extends JFrame {
         txtCelularDP.setBounds(409, 258, 161, 23);
         panel.add(txtCelularDP);
 
-
+        // ════════════════════════════════════════════════════════════════════
+        //  Aba: Curso
+        // ════════════════════════════════════════════════════════════════════
         JPanel panel_1 = new JPanel();
         tabbedPane.addTab("Curso", null, panel_1, null);
         panel_1.setLayout(null);
@@ -694,13 +959,10 @@ public class JanelaTeste extends JFrame {
         grupoPeriodo.add(rdbVespertino);
         grupoPeriodo.add(rdbNoturno);
 
-        // ── Campos abaixo do Período ────────────────────────────────────────
-
         JSeparator sepCurso = new JSeparator();
         sepCurso.setBounds(40, 200, 519, 2);
         panel_1.add(sepCurso);
 
-        // Semestre Atual
         JLabel lblSemestreAtual = new JLabel("Semestre Atual");
         lblSemestreAtual.setFont(new Font("Tahoma", Font.PLAIN, 18));
         lblSemestreAtual.setBounds(40, 214, 135, 26);
@@ -712,7 +974,6 @@ public class JanelaTeste extends JFrame {
         cbSemestreAtual.setBounds(190, 216, 80, 24);
         panel_1.add(cbSemestreAtual);
 
-        // Modalidade
         JLabel lblModalidade = new JLabel("Modalidade");
         lblModalidade.setFont(new Font("Tahoma", Font.PLAIN, 18));
         lblModalidade.setBounds(300, 214, 105, 26);
@@ -724,7 +985,6 @@ public class JanelaTeste extends JFrame {
         cbModalidade.setBounds(415, 216, 144, 24);
         panel_1.add(cbModalidade);
 
-        // Ano de Ingresso
         JLabel lblAnoIngresso = new JLabel("Ano de Ingresso");
         lblAnoIngresso.setFont(new Font("Tahoma", Font.PLAIN, 18));
         lblAnoIngresso.setBounds(40, 260, 148, 26);
@@ -733,11 +993,9 @@ public class JanelaTeste extends JFrame {
         txtAnoIngresso = new JTextField();
         txtAnoIngresso.setFont(new Font("Tahoma", Font.PLAIN, 18));
         txtAnoIngresso.setBounds(200, 262, 80, 24);
-        // Somente números no ano de ingresso
         ((AbstractDocument) txtAnoIngresso.getDocument()).setDocumentFilter(new FiltroSomenteNumeros());
         panel_1.add(txtAnoIngresso);
 
-        // Turno de aulas (informativo)
         JLabel lblTurnoInfo = new JLabel("Turno de aulas:");
         lblTurnoInfo.setFont(new Font("Tahoma", Font.BOLD, 13));
         lblTurnoInfo.setForeground(new Color(80, 80, 80));
@@ -750,7 +1008,9 @@ public class JanelaTeste extends JFrame {
         lblTurnoDetalhe.setBounds(40, 318, 530, 18);
         panel_1.add(lblTurnoDetalhe);
 
-
+        // ════════════════════════════════════════════════════════════════════
+        //  Aba: Notas e Faltas
+        // ════════════════════════════════════════════════════════════════════
         JPanel panel_2 = new JPanel();
         tabbedPane.addTab("Notas e Faltas", null, panel_2, null);
         panel_2.setLayout(null);
@@ -760,19 +1020,19 @@ public class JanelaTeste extends JFrame {
         lblRgmNF.setBounds(10, 15, 45, 22);
         panel_2.add(lblRgmNF);
 
-        txtRgmNF = new JFormattedTextField(new MaskFormatter("#########"));
+        // CORRIGIDO: JTextField + FiltroSomenteNumeros (antes era JFormattedTextField com MaskFormatter)
+        txtRgmNF = new JTextField();
         txtRgmNF.setFont(new Font("Tahoma", Font.PLAIN, 18));
         txtRgmNF.setBounds(71, 21, 121, 25);
         txtRgmNF.setColumns(10);
+        ((AbstractDocument) txtRgmNF.getDocument()).setDocumentFilter(new FiltroRgm());
         panel_2.add(txtRgmNF);
-
 
         txtRgmNF.addFocusListener(new FocusAdapter() {
             @Override public void focusLost(FocusEvent e) { buscarAluno(); }
         });
         txtRgmNF.addActionListener(e -> buscarAluno());
 
-        // Campo nome (read-only) – aparece à direita do RGM
         txtNomeAluno = new JTextField("Nome");
         txtNomeAluno.setFont(new Font("Tahoma", Font.PLAIN, 16));
         txtNomeAluno.setEditable(false);
@@ -780,7 +1040,6 @@ public class JanelaTeste extends JFrame {
         txtNomeAluno.setBounds(232, 17, 339, 25);
         panel_2.add(txtNomeAluno);
 
-        // Campo curso (read-only) – aparece abaixo
         txtCursoAluno = new JTextField("Curso");
         txtCursoAluno.setFont(new Font("Tahoma", Font.PLAIN, 16));
         txtCursoAluno.setEditable(false);
@@ -837,9 +1096,12 @@ public class JanelaTeste extends JFrame {
 
         txtFaltas = new JTextField();
         txtFaltas.setBounds(443, 178, 60, 25);
+        ((AbstractDocument) txtFaltas.getDocument()).setDocumentFilter(new FiltroSomenteNumeros());
         panel_2.add(txtFaltas);
 
-        //Boletim
+        // ════════════════════════════════════════════════════════════════════
+        //  Aba: Boletim
+        // ════════════════════════════════════════════════════════════════════
         JPanel panel_3 = new JPanel();
         tabbedPane.addTab("Boletim", null, panel_3, null);
         panel_3.setLayout(null);
@@ -849,9 +1111,11 @@ public class JanelaTeste extends JFrame {
         lblRgmBoletim.setBounds(10, 10, 56, 22);
         panel_3.add(lblRgmBoletim);
 
-        txtRgmBoletim = new JFormattedTextField(new MaskFormatter("#########"));
+        // CORRIGIDO: JTextField + FiltroSomenteNumeros (antes era JFormattedTextField com MaskFormatter)
+        txtRgmBoletim = new JTextField();
         txtRgmBoletim.setFont(new Font("Tahoma", Font.PLAIN, 18));
         txtRgmBoletim.setBounds(76, 15, 162, 18);
+        ((AbstractDocument) txtRgmBoletim.getDocument()).setDocumentFilter(new FiltroRgm());
         panel_3.add(txtRgmBoletim);
         txtRgmBoletim.addActionListener(e -> buscarBoletim());
         txtRgmBoletim.addFocusListener(new FocusAdapter() {
@@ -868,7 +1132,6 @@ public class JanelaTeste extends JFrame {
         txtNomeBoletim.setBounds(328, 15, 251, 18);
         panel_3.add(txtNomeBoletim);
 
-        // Curso – preenchido automaticamente ao digitar o RGM
         JLabel lblCursoBoletim = new JLabel("Curso");
         lblCursoBoletim.setFont(new Font("Tahoma", Font.PLAIN, 18));
         lblCursoBoletim.setBounds(10, 40, 56, 22);
@@ -878,7 +1141,6 @@ public class JanelaTeste extends JFrame {
         txtCursoBoletim.setEditable(false);
         txtCursoBoletim.setBounds(76, 42, 503, 18);
         panel_3.add(txtCursoBoletim);
-
 
         JLabel lblNewLabel_1 = new JLabel("Disciplina");
         lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 18));
@@ -905,9 +1167,6 @@ public class JanelaTeste extends JFrame {
         lblNewLabel_1_1_1_1_1.setBounds(527, 65, 72, 31);
         panel_3.add(lblNewLabel_1_1_1_1_1);
 
-
-
-
         JSeparator separator_1 = new JSeparator();
         separator_1.setBounds(276, 76, 0, 233);
         panel_3.add(separator_1);
@@ -924,43 +1183,36 @@ public class JanelaTeste extends JFrame {
         separator_1_3.setBounds(512, 76, 0, 233);
         panel_3.add(separator_1_3);
 
-
         int[] yDisc = { 88, 126, 178, 225, 275 };
         int[] yCols = { 98, 138, 182, 231, 280 };
-        int[] ySep  = {122, 166, 219, 263         };
+        int[] ySep  = {122, 166, 219, 263        };
 
         for (int i = 0; i < 5; i++) {
-            // Disciplina
             bltDisciplinas[i] = new JFormattedTextField();
             bltDisciplinas[i].setEditable(false);
             bltDisciplinas[i].setBounds(10, yDisc[i], 256, 28);
             panel_3.add(bltDisciplinas[i]);
 
-            // Semestre
             bltSemestres[i] = new JFormattedTextField();
             bltSemestres[i].setEditable(false);
             bltSemestres[i].setBounds(274, yCols[i], 80, 18);
             panel_3.add(bltSemestres[i]);
 
-            // Nota
             bltNotas[i] = new JFormattedTextField();
             bltNotas[i].setEditable(false);
             bltNotas[i].setBounds(375, yCols[i], 62, 18);
             panel_3.add(bltNotas[i]);
 
-            // Faltas
             bltFaltas[i] = new JFormattedTextField();
             bltFaltas[i].setEditable(false);
             bltFaltas[i].setBounds(451, yCols[i], 62, 18);
             panel_3.add(bltFaltas[i]);
 
-            // Situação
             bltSituacoes[i] = new JFormattedTextField();
             bltSituacoes[i].setEditable(false);
             bltSituacoes[i].setBounds(527, yCols[i], 62, 18);
             panel_3.add(bltSituacoes[i]);
 
-            // Separador horizontal entre linhas (exceto após a última)
             if (i < ySep.length) {
                 JSeparator sepRow = new JSeparator();
                 sepRow.setBounds(10, ySep[i], 579, 2);
