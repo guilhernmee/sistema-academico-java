@@ -17,7 +17,7 @@ public class NotaFaltaDAO {
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            stmt.setString(1, notaFalta.getAluno().getRgm());
+            stmt.setInt(1, notaFalta.getAluno().getRgm());             // ALTERADO: setInt
             stmt.setInt(2, notaFalta.getDisciplina().getCodDisciplina());
             stmt.setString(3, notaFalta.getSemestre().toString());
             stmt.setDouble(4, notaFalta.getNota());
@@ -34,7 +34,6 @@ public class NotaFaltaDAO {
     }
 
     public NotaFalta buscarPorId(int codNotaFalta) throws Exception {
-        // CORRIGIDO: alias explícito "a.rgm AS rgm" para evitar ambiguidade com fk_rgm
         String sql = "SELECT nf.pk_cod_nota_falta, nf.semestre, nf.nota, nf.faltas, " +
                 "a.rgm AS rgm, a.nome AS nome_aluno, a.cpf, a.data_nascimento, a.email, a.endereco, a.municipio, a.uf, a.celular, " +
                 "d.cod_disciplina, d.nome_disciplina, " +
@@ -58,8 +57,8 @@ public class NotaFaltaDAO {
         return null;
     }
 
-    public List<NotaFalta> listarPorAluno(String rgm) throws Exception {
-        // CORRIGIDO: alias explícito "a.rgm AS rgm" para evitar ambiguidade
+    // ALTERADO: parâmetro rgm agora é int
+    public List<NotaFalta> listarPorAluno(int rgm) throws Exception {
         String sql = "SELECT nf.pk_cod_nota_falta, nf.semestre, nf.nota, nf.faltas, " +
                 "a.rgm AS rgm, a.nome AS nome_aluno, a.cpf, a.data_nascimento, a.email, a.endereco, a.municipio, a.uf, a.celular, " +
                 "d.cod_disciplina, d.nome_disciplina, " +
@@ -75,7 +74,7 @@ public class NotaFaltaDAO {
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, rgm);
+            stmt.setInt(1, rgm);                                       // ALTERADO: setInt
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     lista.add(montarObjeto(rs));
@@ -92,7 +91,7 @@ public class NotaFaltaDAO {
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, notaFalta.getAluno().getRgm());
+            stmt.setInt(1, notaFalta.getAluno().getRgm());             // ALTERADO: setInt
             stmt.setInt(2, notaFalta.getDisciplina().getCodDisciplina());
             stmt.setString(3, notaFalta.getSemestre().toString());
             stmt.setDouble(4, notaFalta.getNota());
@@ -133,14 +132,12 @@ public class NotaFaltaDAO {
         );
 
         Aluno aluno = new Aluno();
-        // CORRIGIDO: usando alias "rgm" (explícito no SELECT) em vez de "fk_rgm"
-        aluno.setRgm(rs.getString("rgm"));
+        aluno.setRgm(rs.getInt("rgm"));                                // ALTERADO: getInt
         aluno.setNome(rs.getString("nome_aluno"));
         aluno.setCurso(curso);
         aluno.setCpf(rs.getString("cpf"));
         aluno.setEmail(rs.getString("email"));
 
-        // CORRIGIDO: usando cod_disciplina e nome_disciplina vindos do alias explícito no SELECT
         Disciplina disciplina = new Disciplina(
                 rs.getInt("cod_disciplina"),
                 rs.getString("nome_disciplina"),

@@ -11,14 +11,13 @@ import java.sql.Date;
 
 public class AlunoDAO {
 
-    // CORRIGIDO: agora propaga throws Exception, igual ao CursoDAO, DisciplinaDAO e NotaFaltaDAO
     public void salvar(Aluno aluno) throws Exception {
         String sql = "INSERT INTO tb_aluno (rgm, fk_cod_curso, nome, cpf, data_nascimento, email, endereco, municipio, uf, celular) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, aluno.getRgm());
+            stmt.setInt(1, aluno.getRgm());                            // ALTERADO: setInt
             stmt.setInt(2, aluno.getCurso().getCodCurso());
             stmt.setString(3, aluno.getNome());
             stmt.setString(4, aluno.getCpf());
@@ -34,8 +33,8 @@ public class AlunoDAO {
         }
     }
 
-    // CORRIGIDO: agora propaga throws Exception
-    public Aluno consultar(String rgm) throws Exception {
+    // ALTERADO: parâmetro rgm agora é int
+    public Aluno consultar(int rgm) throws Exception {
         String sql = """
             SELECT a.*, c.cod_curso, c.nome_curso, c.campus, c.periodo
             FROM tb_aluno a
@@ -46,19 +45,18 @@ public class AlunoDAO {
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, rgm);
+            stmt.setInt(1, rgm);                                       // ALTERADO: setInt
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     Curso curso = new Curso();
                     curso.setCodCurso(rs.getInt("cod_curso"));
-                    // CORRIGIDO: era setNome(), agora é setNomeCurso() após correção em Curso.java
                     curso.setNomeCurso(rs.getString("nome_curso"));
                     curso.setCampus(rs.getString("campus"));
                     curso.setPeriodo(Curso.Periodo.valueOf(rs.getString("periodo")));
 
                     Aluno alunoEncontrado = new Aluno();
-                    alunoEncontrado.setRgm(rs.getString("rgm"));
+                    alunoEncontrado.setRgm(rs.getInt("rgm"));          // ALTERADO: getInt
                     alunoEncontrado.setNome(rs.getString("nome"));
                     alunoEncontrado.setCpf(rs.getString("cpf"));
                     alunoEncontrado.setDataNascimento(rs.getDate("data_nascimento").toLocalDate());
@@ -76,7 +74,6 @@ public class AlunoDAO {
         return null;
     }
 
-    // CORRIGIDO: agora propaga throws Exception
     public void alterar(Aluno aluno) throws Exception {
         String sql = "UPDATE tb_aluno SET fk_cod_curso = ?, nome = ?, cpf = ?, data_nascimento = ?, email = ?, endereco = ?, municipio = ?, uf = ?, celular = ? WHERE rgm = ?";
 
@@ -92,24 +89,23 @@ public class AlunoDAO {
             stmt.setString(7, aluno.getMunicipio());
             stmt.setString(8, aluno.getUf());
             stmt.setString(9, aluno.getCelular());
-            stmt.setString(10, aluno.getRgm());
+            stmt.setInt(10, aluno.getRgm());                           // ALTERADO: setInt
 
             stmt.executeUpdate();
             System.out.println("Aluno " + aluno.getNome() + " alterado com sucesso!");
         }
     }
 
-    // CORRIGIDO: agora propaga throws Exception
-    public void excluir(String rgm) throws Exception {
+    // ALTERADO: parâmetro rgm agora é int
+    public void excluir(int rgm) throws Exception {
         String sql = "DELETE FROM tb_aluno WHERE rgm = ?";
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, rgm);
+            stmt.setInt(1, rgm);                                       // ALTERADO: setInt
             stmt.executeUpdate();
             System.out.println("Aluno de RGM " + rgm + " excluído com sucesso!");
-            // Graças ao ON DELETE CASCADE no banco, as notas são removidas automaticamente
         }
     }
 }
