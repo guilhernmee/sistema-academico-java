@@ -192,9 +192,9 @@ SistemaAcademico/
 │   │   ├── DisciplinaDAO.java
 │   │   ├── NotaFaltaDAO.java
 │   │   └── BoletimDAO.java
-│   ├── tela/
-│   │   ├── TelaPrincipal.java
-│   └── dao/
+│   ├── view/
+│   │   ├── JanelaTeste.java
+│   └── util/
 │       └── Conexao.java
 └── database/
     └── script.sql
