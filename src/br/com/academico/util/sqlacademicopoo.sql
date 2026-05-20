@@ -164,7 +164,6 @@ ALTER TABLE tb_nota_falta
 DELIMITER $$
 
 -- Valida data_nascimento no INSERT
--- (CHECK não suporta CURDATE() no MySQL; validação extra no Java também)
 CREATE TRIGGER trg_valida_nascimento_insert
     BEFORE INSERT ON tb_aluno
     FOR EACH ROW
@@ -186,10 +185,7 @@ BEGIN
 END IF;
 END$$
 
--- Valida semestre (YYYY-1 ou YYYY-2) e arredonda nota no INSERT
--- Arredondamento: CEIL(nota - 0.25)
---   Ex.: 7.75 → CEIL(7.50) = 8  |  7.74 → CEIL(7.49) = 7
--- Alinhado com cbNota da JanelaTeste (valores de 0,0 a 10,0 em passos de 0,5)
+-- Valida semestre e arredonda nota no INSERT — apenas 4.5 sobe para 5
 CREATE TRIGGER trg_nota_falta_insert
     BEFORE INSERT ON tb_nota_falta
     FOR EACH ROW
@@ -204,10 +200,12 @@ IF NEW.nota < 0 OR NEW.nota > 10 THEN
         SET MESSAGE_TEXT = 'Nota deve estar entre 0 e 10.';
 END IF;
 
-    SET NEW.nota = CEIL(NEW.nota - 0.25);
+    IF NEW.nota = 4.5 THEN
+        SET NEW.nota = 5;
+END IF;
 END$$
 
--- Valida semestre e arredonda nota no UPDATE
+-- Valida semestre e arredonda nota no UPDATE — apenas 4.5 sobe para 5
 CREATE TRIGGER trg_nota_falta_update
     BEFORE UPDATE ON tb_nota_falta
     FOR EACH ROW
@@ -222,7 +220,9 @@ IF NEW.nota < 0 OR NEW.nota > 10 THEN
         SET MESSAGE_TEXT = 'Nota deve estar entre 0 e 10.';
 END IF;
 
-    SET NEW.nota = CEIL(NEW.nota - 0.25);
+    IF NEW.nota = 4.5 THEN
+        SET NEW.nota = 5;
+END IF;
 END$$
 
 DELIMITER ;
