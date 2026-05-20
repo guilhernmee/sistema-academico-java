@@ -261,15 +261,23 @@ SistemaAcademico/
 
 ## 👨‍💻 Autores
 
-Ágatha Ribeiro
-Bruno Oliveira Theodoro
-Dandhara Fernandes De Campos Lima 
-Ellen Mayumi Borges
-Felipe Neres Vieira 
-Guilherme dos Santos Matos
-Iris Pfister Pascoal
-Pedro Fidelis Mandoti 
-Victor Leandro da Silva
+- Ágatha Ribeiro
+  
+- Bruno Oliveira Theodoro
+  
+- Dandhara Fernandes De Campos Lima
+  
+- Ellen Mayumi Borges
+  
+- Felipe Neres Vieira
+  
+- Guilherme dos Santos Matos
+  
+- Iris Pfister Pascoal
+  
+- Pedro Fidelis Mandoti
+
+- Victor Leandro da Silva
 
 Desenvolvido como parte da **Atividade 2 — Sistema Acadêmico** da disciplina de Programação Orientada a Objetos.
 
