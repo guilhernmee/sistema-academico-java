@@ -117,9 +117,7 @@ BEGIN
     END IF;
 END$$
 
--- Valida semestre (formato YYYY-1 ou YYYY-2) e arredonda nota no INSERT
--- Arredondamento: CEIL(nota - 0.25) → >= x.75 sobe para o inteiro seguinte
---   Ex.: 1.75 → CEIL(1.50) = 2  |  1.74 → CEIL(1.49) = 1
+-- Valida semestre (formato YYYY-1 ou YYYY-2) — apenas 4.5 sobe para 5
 CREATE TRIGGER trg_nota_falta_insert
 BEFORE INSERT ON tb_nota_falta
 FOR EACH ROW
@@ -134,10 +132,12 @@ BEGIN
         SET MESSAGE_TEXT = 'Nota deve estar entre 0 e 10.';
     END IF;
 
-    SET NEW.nota = CEIL(NEW.nota - 0.25);
+    IF NEW.nota = 4.5 THEN
+        SET NEW.nota = 5;
+    END IF;
 END$$
 
--- Valida semestre e arredonda nota no UPDATE
+-- Valida semestre e arredonda nota no UPDATE — apenas 4.5 sobe para 5
 CREATE TRIGGER trg_nota_falta_update
 BEFORE UPDATE ON tb_nota_falta
 FOR EACH ROW
@@ -152,7 +152,9 @@ BEGIN
         SET MESSAGE_TEXT = 'Nota deve estar entre 0 e 10.';
     END IF;
 
-    SET NEW.nota = CEIL(NEW.nota - 0.25);
+    IF NEW.nota = 4.5 THEN
+        SET NEW.nota = 5;
+    END IF;
 END$$
 
 DELIMITER ;
