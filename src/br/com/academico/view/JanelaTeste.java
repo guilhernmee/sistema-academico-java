@@ -123,6 +123,21 @@ public class JanelaTeste extends JFrame {
         }
     }
 
+    static class FiltroEndereco extends DocumentFilter {
+        @Override
+        public void insertString(FilterBypass fb, int offset, String str, AttributeSet attr)
+                throws BadLocationException {
+            if (str != null && str.matches("[\\p{L}0-9 .,]*"))
+                super.insertString(fb, offset, str, attr);
+        }
+        @Override
+        public void replace(FilterBypass fb, int offset, int length, String str, AttributeSet attrs)
+                throws BadLocationException {
+            if (str != null && str.matches("[\\p{L}0-9 .,]*"))
+                super.replace(fb, offset, length, str, attrs);
+        }
+    }
+
     static class FiltroSomenteNumeros extends DocumentFilter {
         @Override
         public void insertString(FilterBypass fb, int offset, String str, AttributeSet attr)
@@ -263,6 +278,44 @@ public class JanelaTeste extends JFrame {
                 return;
             }
 
+            if (dataNasc.isAfter(LocalDate.now())) {
+                JOptionPane.showMessageDialog(this, "Data de nascimento não pode ser uma data futura.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (dataNasc.isBefore(LocalDate.now().minusYears(100))) {
+                JOptionPane.showMessageDialog(this, "Idade não permitida. O aluno não pode ter mais de 100 anos.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String email = txtEmailDP.getText().trim();
+            if (!email.contains("@") || email.indexOf("@") == 0 || email.indexOf("@") == email.length() - 1) {
+                JOptionPane.showMessageDialog(this, "E-mail inválido. O campo deve conter '@' entre o nome e o domínio.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String anoIngressoStr = txtAnoIngresso.getText().trim();
+            if (anoIngressoStr.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Informe o ano de ingresso.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            int anoIngresso = Integer.parseInt(anoIngressoStr);
+            int anoAtual = LocalDate.now().getYear();
+            if (anoIngresso < 2020 || anoIngresso > anoAtual) {
+                JOptionPane.showMessageDialog(this,
+                        "Ano de ingresso inválido. Deve ser entre 2020 e " + anoAtual + ".",
+                        "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String celular = txtCelularDP.getText();
+            String ddd = celular.replaceAll("[^0-9]", "").substring(0, 2);
+            if (ddd.endsWith("0")) {
+                JOptionPane.showMessageDialog(this,
+                        "DDD inválido (" + ddd + "). DDDs terminados em 0 não existem.",
+                        "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             Curso curso = obterOuCriarCurso(
                     (String) cbCurso.getSelectedItem(),
                     (String) cbCampus.getSelectedItem(),
@@ -274,7 +327,7 @@ public class JanelaTeste extends JFrame {
                     nome,
                     txtCpfDP.getText(),
                     dataNasc,
-                    txtEmailDP.getText(),
+                    email,
                     txtEndDP.getText(),
                     txtMunicipioDP.getText(),
                     (String) cbUF.getSelectedItem(),
@@ -284,6 +337,7 @@ public class JanelaTeste extends JFrame {
 
             alunoDAO.salvar(aluno);
             JOptionPane.showMessageDialog(this, "Aluno salvo com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+            limparCamposAluno();
         } catch (Exception ex) {
             erro("Erro ao salvar aluno", ex);
         }
@@ -323,6 +377,44 @@ public class JanelaTeste extends JFrame {
                 return;
             }
 
+            if (dataNasc.isAfter(LocalDate.now())) {
+                JOptionPane.showMessageDialog(this, "Data de nascimento não pode ser uma data futura.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (dataNasc.isBefore(LocalDate.now().minusYears(100))) {
+                JOptionPane.showMessageDialog(this, "Idade não permitida. O aluno não pode ter mais de 100 anos.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String email = txtEmailDP.getText().trim();
+            if (!email.contains("@") || email.indexOf("@") == 0 || email.indexOf("@") == email.length() - 1) {
+                JOptionPane.showMessageDialog(this, "E-mail inválido. O campo deve conter '@' entre o nome e o domínio.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String anoIngressoStr = txtAnoIngresso.getText().trim();
+            if (anoIngressoStr.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Informe o ano de ingresso.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            int anoIngresso = Integer.parseInt(anoIngressoStr);
+            int anoAtual = LocalDate.now().getYear();
+            if (anoIngresso < 2020 || anoIngresso > anoAtual) {
+                JOptionPane.showMessageDialog(this,
+                        "Ano de ingresso inválido. Deve ser entre 2020 e " + anoAtual + ".",
+                        "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String celular = txtCelularDP.getText();
+            String ddd = celular.replaceAll("[^0-9]", "").substring(0, 2);
+            if (ddd.endsWith("0")) {
+                JOptionPane.showMessageDialog(this,
+                        "DDD inválido (" + ddd + "). DDDs terminados em 0 não existem.",
+                        "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             Curso curso = obterOuCriarCurso(
                     (String) cbCurso.getSelectedItem(),
                     (String) cbCampus.getSelectedItem(),
@@ -334,7 +426,7 @@ public class JanelaTeste extends JFrame {
                     nome,
                     txtCpfDP.getText(),
                     dataNasc,
-                    txtEmailDP.getText(),
+                    email,
                     txtEndDP.getText(),
                     txtMunicipioDP.getText(),
                     (String) cbUF.getSelectedItem(),
@@ -344,6 +436,7 @@ public class JanelaTeste extends JFrame {
 
             alunoDAO.alterar(aluno);
             JOptionPane.showMessageDialog(this, "Dados do aluno alterados com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+            limparCamposAluno();
         } catch (Exception ex) {
             erro("Erro ao alterar aluno", ex);
         }
@@ -407,6 +500,7 @@ public class JanelaTeste extends JFrame {
             if (ok == JOptionPane.YES_OPTION) {
                 alunoDAO.excluir(rgm);
                 JOptionPane.showMessageDialog(this, "Aluno excluído com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                limparCamposAluno();
             }
         } catch (Exception ex) {
             erro("Erro ao excluir aluno", ex);
@@ -443,7 +537,68 @@ public class JanelaTeste extends JFrame {
             Disciplina disciplina = obterOuCriarDisciplina(disciplinaUI, aluno.getCurso());
             NotaFalta.Semestre semestreEnum = converterSemestre(semestreStr);
 
-            // UNIQUE (fk_rgm, fk_cod_disciplina, semestre): se já existe, UPDATE; senão, INSERT.
+            // Salvar: só permite INSERT — bloqueia se já existir
+            for (NotaFalta nf : notaFaltaDAO.listarPorAluno(rgm)) {
+                if (nf.getDisciplina().getCodDisciplina() == disciplina.getCodDisciplina()
+                        && nf.getSemestre() == semestreEnum) {
+                    JOptionPane.showMessageDialog(this,
+                            "Já existe uma nota para esta disciplina neste semestre.\nUse 'Alterar' para modificá-la.",
+                            "Aviso", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+            }
+
+            NotaFalta novo = new NotaFalta();
+            novo.setAluno(aluno);
+            novo.setDisciplina(disciplina);
+            novo.setSemestre(semestreEnum);
+            novo.setNota(nota);
+            novo.setFaltas(faltas);
+            notaFaltaDAO.salvar(novo);
+
+            JOptionPane.showMessageDialog(this, "Nota salva com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+            limparCamposNota();
+        } catch (Exception ex) {
+            erro("Erro ao salvar nota", ex);
+        }
+    }
+
+    private void alterarNota() {
+        try {
+            int rgm = lerRgm(txtRgmNF.getText(), "do aluno");
+            if (rgm == -1) return;
+
+            Aluno aluno = alunoDAO.consultar(rgm);
+            if (aluno == null) {
+                JOptionPane.showMessageDialog(this, "RGM não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String disciplinaUI = (String) cbDisciplina.getSelectedItem();
+            String semestreStr  = (String) cbSemestre.getSelectedItem();
+            String notaStr      = (String) cbNota.getSelectedItem();
+            String faltasStr    = txtFaltas.getText().trim();
+
+            // Pelo menos um dos dois deve ser informado
+            boolean alterarNota   = cbNota.getSelectedIndex() != 0 || !faltasStr.isEmpty();
+            boolean alterarFaltas = !faltasStr.isEmpty();
+
+            if (!alterarNota && !alterarFaltas) {
+                JOptionPane.showMessageDialog(this,
+                        "Selecione uma nota ou informe as faltas para alterar.",
+                        "Aviso", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            if (alterarFaltas && !faltasStr.matches("[0-9]+")) {
+                JOptionPane.showMessageDialog(this, "Informe um número válido de faltas.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            Disciplina disciplina = obterOuCriarDisciplina(disciplinaUI, aluno.getCurso());
+            NotaFalta.Semestre semestreEnum = converterSemestre(semestreStr);
+
+            // Alterar: só permite UPDATE — bloqueia se não existir
             NotaFalta existente = null;
             for (NotaFalta nf : notaFaltaDAO.listarPorAluno(rgm)) {
                 if (nf.getDisciplina().getCodDisciplina() == disciplina.getCodDisciplina()
@@ -453,28 +608,26 @@ public class JanelaTeste extends JFrame {
                 }
             }
 
-            if (existente != null) {
-                existente.setNota(nota);
-                existente.setFaltas(faltas);
-                notaFaltaDAO.atualizar(existente);
-            } else {
-                NotaFalta novo = new NotaFalta();
-                novo.setAluno(aluno);
-                novo.setDisciplina(disciplina);
-                novo.setSemestre(semestreEnum);
-                novo.setNota(nota);
-                novo.setFaltas(faltas);
-                notaFaltaDAO.salvar(novo);
+            if (existente == null) {
+                JOptionPane.showMessageDialog(this,
+                        "Nenhuma nota encontrada para esta disciplina neste semestre.\nUse 'Salvar' para cadastrar.",
+                        "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
             }
 
-            JOptionPane.showMessageDialog(this, "Nota salva com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
-        } catch (Exception ex) {
-            erro("Erro ao salvar nota", ex);
-        }
-    }
+            // Atualiza apenas o que foi informado; mantém o valor atual do restante
+            if (cbNota.getSelectedIndex() != 0)
+                existente.setNota(Double.parseDouble(notaStr.replace(",", ".")));
+            if (alterarFaltas)
+                existente.setFaltas(Integer.parseInt(faltasStr));
 
-    private void alterarNota() {
-        salvarNota(); // upsert
+            notaFaltaDAO.atualizar(existente);
+
+            JOptionPane.showMessageDialog(this, "Nota alterada com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+            limparCamposNota();
+        } catch (Exception ex) {
+            erro("Erro ao alterar nota", ex);
+        }
     }
 
     private void consultarNota() {
@@ -506,6 +659,7 @@ public class JanelaTeste extends JFrame {
             }
             sb.append("</table></html>");
             JOptionPane.showMessageDialog(this, sb.toString(), "Notas - RGM: " + rgm, JOptionPane.INFORMATION_MESSAGE);
+            limparCamposNota();
             tabbedPane.setSelectedIndex(2);
         } catch (Exception ex) {
             erro("Erro ao consultar notas", ex);
@@ -534,10 +688,46 @@ public class JanelaTeste extends JFrame {
                     notaFaltaDAO.excluir(nf.getCodNotaFalta());
                 }
                 JOptionPane.showMessageDialog(this, "Notas excluídas com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                limparCamposNota();
             }
         } catch (Exception ex) {
             erro("Erro ao excluir notas", ex);
         }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  Limpeza de campos
+    // ════════════════════════════════════════════════════════════════════════
+    private void limparCamposAluno() {
+        txtRgmDP.setText("");
+        txtNomeDP.setText("");
+        txtCpfDP.setText("");
+        txtDataNascDP.setText("");
+        txtEmailDP.setText("");
+        txtEndDP.setText("");
+        txtMunicipioDP.setText("");
+        txtCelularDP.setText("");
+        txtAnoIngresso.setText("");
+        cbUF.setSelectedIndex(0);
+        cbCurso.setSelectedIndex(0);
+        cbCampus.setSelectedIndex(0);
+        cbSemestreAtual.setSelectedIndex(0);
+        cbModalidade.setSelectedIndex(0);
+        rdbMatutino.setSelected(false);
+        rdbVespertino.setSelected(false);
+        rdbNoturno.setSelected(false);
+    }
+
+    private void limparCamposNota() {
+        txtRgmNF.setText("");
+        txtNomeAluno.setText("Nome");
+        txtNomeAluno.setForeground(Color.GRAY);
+        txtCursoAluno.setText("Curso");
+        txtCursoAluno.setForeground(Color.GRAY);
+        cbDisciplina.setSelectedIndex(0);
+        cbSemestre.setSelectedIndex(0);
+        cbNota.setSelectedIndex(0);
+        txtFaltas.setText("");
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -818,6 +1008,7 @@ public class JanelaTeste extends JFrame {
         txtEndDP.setFont(new Font("Tahoma", Font.PLAIN, 18));
         txtEndDP.setColumns(10);
         txtEndDP.setBounds(83, 197, 487, 31);
+        ((AbstractDocument) txtEndDP.getDocument()).setDocumentFilter(new FiltroEndereco());
         panel.add(txtEndDP);
 
         JLabel lblMunicipio = new JLabel("Município");
@@ -948,11 +1139,7 @@ public class JanelaTeste extends JFrame {
         ((AbstractDocument) txtAnoIngresso.getDocument()).setDocumentFilter(new FiltroSomenteNumeros());
         panel_1.add(txtAnoIngresso);
 
-        JLabel lblTurnoInfo = new JLabel("Turno de aulas:");
-        lblTurnoInfo.setFont(new Font("Tahoma", Font.BOLD, 13));
-        lblTurnoInfo.setForeground(new Color(80, 80, 80));
-        lblTurnoInfo.setBounds(40, 300, 130, 18);
-        panel_1.add(lblTurnoInfo);
+
 
         JLabel lblTurnoDetalhe = new JLabel("Matutino: 07h-12h  |  Vespertino: 13h-18h  |  Noturno: 19h-23h");
         lblTurnoDetalhe.setFont(new Font("Tahoma", Font.PLAIN, 12));
@@ -1034,7 +1221,8 @@ public class JanelaTeste extends JFrame {
         cbNota.setFont(new Font("Tahoma", Font.PLAIN, 14));
         cbNota.setModel(new DefaultComboBoxModel<>(new String[]{
                 "0,0","0,5","1,0","1,5","2,0","2,5","3,0","3,5",
-                "4,0","4,5","5,0","6,0","7,0","8,0","9,0","10,0"
+                "4,0","4,5","5,0","5,5","6,0","6,5","7,0","7,5",
+                "8,0","8,5","9,0","9,5","10,0"
         }));
         cbNota.setBounds(279, 176, 70, 25);
         panel_2.add(cbNota);
