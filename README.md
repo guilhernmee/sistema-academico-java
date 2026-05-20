@@ -21,22 +21,22 @@ Campos disponíveis:
 - E-mail, Endereço
 - Município, UF, Celular *(JFormattedTextField)*
 
-### Aba — Curso
+### Aba — br.com.academico.model.Curso
 Campos disponíveis:
-- Curso *(ComboBox)*
+- br.com.academico.model.Curso *(ComboBox)*
 - Campus *(ComboBox)*
 - Período: Matutino / Vespertino / Noturno *(RadioButton)*
 
 ### Aba — Notas e Faltas
 Campos disponíveis:
 - RGM, Nome do aluno *(somente leitura)*
-- Disciplina *(ComboBox)*
+- br.com.academico.model.Disciplina *(ComboBox)*
 - Semestre, Nota, Faltas
 
 ### Aba — Boletim
 Exibe um resumo com:
-- RGM, Nome, Curso
-- Disciplinas, Notas, Faltas e Situação do aluno
+- RGM, Nome, br.com.academico.model.Curso
+- Disciplinas, Notas e Faltas do aluno
 
 ---
 
@@ -44,7 +44,7 @@ Exibe um resumo com:
 
 | Menu | Opções |
 |------|--------|
-| **Aluno** | Salvar, Alterar, Consultar, Excluir, Sair |
+| **br.com.academico.model.Aluno** | Salvar, Alterar, Consultar, Excluir, Sair |
 | **Notas e Faltas** | Lançar |
 | **Ajuda** | Sobre |
 
@@ -182,10 +182,9 @@ JOIN tb_curso      c ON c.cod_curso      = a.fk_cod_curso;
 SistemaAcademico/
 ├── src/
 │   ├── model/
-│   │   ├── Aluno.java
-│   │   ├── Curso.java
-│   │   ├── Disciplina.java
-│   │   └── NotaFalta.java
+│   │   ├── br.com.academico.model.Aluno.java
+│   │   ├── br.com.academico.model.Curso.java
+│   │   └── NotasFaltas.java
 │   ├── dao/
 │   │   ├── AlunoDAO.java
 │   │   ├── CursoDAO.java
